@@ -3,7 +3,7 @@
 // By Garrett Missiaen
 // readOFF code taken from Lab 8
 
-
+#define _CRT_SECURE_NO_WARNINGS
 #include <GL/glut.h>
 #include <math.h>
 #include <stdio.h>
@@ -51,6 +51,10 @@ float xtrans0 = 0;
 float ytrans0 = 0;
 float xtrans = 0;
 float ytrans = 0;
+
+int refreshTimer = 15; //time between refreshes in milliseconds
+int numIntPoints = 20; //number of points to interpolate
+int translationFrames[2][3] = { {0,0,0}, {4,4,4} }; //translation "key frames"
 
 bool t, s, r = true, both = false;
 
@@ -441,6 +445,12 @@ void createmenu(void) {
 
 	// Let the menu respond on the right mouse button
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
+}
+
+void timer(int value) {
+	glutPostRedisplay();      // Post re-paint request to activate display()
+
+	glutTimerFunc(refreshTimer, timer, 0); // next timer call milliseconds later
 }
 
 int main(int argc, char** argv)
