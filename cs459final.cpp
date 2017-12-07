@@ -38,18 +38,12 @@ static GLfloat **cdata;//array for polygon color
 bool fullscreen = false;
 bool mouseDown = false;
 
-//For translating object
+float xscale = 1.0;
+float yscale = 1.0;
+float zscale = 1.0;
 float xrot = 0.0f;
 float yrot = 0.0f;
 float zrot = 0.0f;
-float xdiff = 0.0f;
-float ydiff = 0.0f;
-float scalex = 0.0f;
-float scaley = 0.0f;
-float scale = 1.0f;
-float scale0 = 1.0f;
-float xtrans0 = 0;
-float ytrans0 = 0;
 float xtrans = 0;
 float ytrans = 0;
 float ztrans = 0;
@@ -57,11 +51,17 @@ int reflect = 1;
 
 int refreshTimer = 15; //time between refreshes in milliseconds
 int numIntPoints = 200; //number of points to interpolate
-float translationFrames[2][3] = { { 0,0,0 },{ 4,4,4 } }; //translation "key frames"
-float rotationFrames[2][3] = { { -100,-100,-100 },{ 300,200,100 } }; //rotation "key frames"
+
+//1st index frames number
+//2nd index translation, rotation, scale
+//3rd index x, y, z
+float frames[2][3][3] = {
+	{ {-1,1,-1}, {-100,-100,-100}, {0.9,0.9,0.9} },
+	{ {1,-1,0}, {300,200,100}, {1.0,2,2} }
+};
 int currentIntPoint = 0;
 
-bool t, s, r = true, both = false;
+bool both = false;
 
 #define min(x,y) ((x)<(y) ? (x) : (y))
 #define max(x,y) ((x)>(y) ? (x) : (y))
@@ -72,9 +72,6 @@ void writemessage()
 	printf("\n\
 	Project 3 By Garrett Missiaen\n\
 	Reads an OFF file and allows translation, rotation, scaling, and different viewing modes\n\
-	t-------------------------- translate object with mouse\n\
-	r-------------------------- rotate object with mouse\n\
-	s-------------------------- scale object with mouse\n\
 	l-------------------------- change color\n\
 	c ------------------------- change off files\n\
 	x, X, y, Y, z, Z ---------- change light source position\n\
@@ -240,10 +237,11 @@ void display(void)
 	glPushMatrix();
 
 	//Transform based on mouse input
-	glTranslatef(xtrans, ytrans, 0.0);
+	glTranslatef(xtrans, ytrans, ztrans);
 	glRotatef(xrot, 1.0f, 0.0f, 0.0f);
 	glRotatef(yrot, 0.0f, 1.0f, 0.0f);
-	glScalef(scale, scale, scale);
+	glRotatef(zrot, 0.0f, 0.0f, 1.0f);
+	glScalef(xscale, yscale, zscale);
 
 
 	//Loop through each face we are drawing
@@ -323,18 +321,6 @@ void keyboard(unsigned char key, int x, int y)
 		lpos[2] = lpos[2] - 0.2;
 		glutPostRedisplay();
 		break;
-	case 't':
-		t = true;
-		r = s = false;
-		break;
-	case 'r':
-		r = true;
-		t = s = false;
-		break;
-	case 's':
-		s = true;
-		t = r = false;
-		break;
 	case 'l':
 		flag = !flag;
 		glutPostRedisplay();
@@ -359,53 +345,6 @@ void specialkey(GLint key, int x, int y)
 		break;
 	default:
 		break;
-	}
-}
-
-void mouse(int button, int state, int x, int y)
-{
-	//For calculating translation/rotation/scaling, we need to keep track of the original position
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)
-	{
-		mouseDown = true;
-
-		xdiff = x - yrot;
-		ydiff = -y + xrot;
-
-		scale0 = scale;
-		scalex = (float)x;
-		scaley = (float)y;
-
-		xtrans0 = xtrans;
-		ytrans0 = ytrans;
-	}
-	else
-		mouseDown = false;
-}
-
-void mouseMotion(int x, int y)
-{
-	if (mouseDown)
-	{
-		int w = glutGet(GLUT_WINDOW_WIDTH);
-		int h = glutGet(GLUT_WINDOW_HEIGHT);
-		//Translate based on moust movement
-		if (t) {
-			xtrans = xtrans0 + (x - scalex) / (250);
-			ytrans = ytrans0 + (scaley - y) / (250);
-		}
-		//Rotate based on moust movement
-		if (r) {
-			yrot = x - xdiff;
-			xrot = y + ydiff;
-		}
-		//Scale based on mouse movement
-		if (s) {
-			scale = (float)scale0 + ((x - scalex + scaley - y) / 1000);
-			if (scale < 0) scale = 0;
-		}
-
-		glutPostRedisplay();
 	}
 }
 
@@ -452,20 +391,44 @@ void createmenu(void) {
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
+void setTranslation() {
+
+	float xtransFactor = (frames[1][0][0] - frames[0][0][0]) / numIntPoints;
+	float ytransFactor = (frames[1][0][1] - frames[0][0][1]) / numIntPoints;
+	float ztransFactor = (frames[1][0][2] - frames[0][0][2]) / numIntPoints;
+
+	xtrans = frames[0][0][0] + currentIntPoint * xtransFactor;
+	ytrans = frames[0][0][1] + currentIntPoint * ytransFactor;
+	ztrans = frames[0][0][2] + currentIntPoint * ztransFactor;
+}
+
 void setRotation() {
 
-	float xrotFactor = (rotationFrames[1][0] - rotationFrames[0][0]) / numIntPoints;
-	float yrotFactor = (rotationFrames[1][1] - rotationFrames[0][1]) / numIntPoints;
-	float zrotFactor = (rotationFrames[1][2] - rotationFrames[0][2]) / numIntPoints;
+	float xrotFactor = (frames[1][1][0] - frames[0][1][0]) / numIntPoints;
+	float yrotFactor = (frames[1][1][1] - frames[0][1][1]) / numIntPoints;
+	float zrotFactor = (frames[1][1][2] - frames[0][1][2]) / numIntPoints;
 
-	xrot = rotationFrames[0][0] + currentIntPoint * xrotFactor;
-	yrot = rotationFrames[0][1] + currentIntPoint * yrotFactor;
-	zrot = rotationFrames[0][2] + currentIntPoint * zrotFactor;
+	xrot = frames[0][1][0] + currentIntPoint * xrotFactor;
+	yrot = frames[0][1][1] + currentIntPoint * yrotFactor;
+	zrot = frames[0][1][2] + currentIntPoint * zrotFactor;
+}
+
+void setScale() {
+
+	float xscaleFactor = (frames[1][2][0] - frames[0][2][0]) / numIntPoints;
+	float yscaleFactor = (frames[1][2][1] - frames[0][2][1]) / numIntPoints;
+	float zscaleFactor = (frames[1][2][2] - frames[0][2][2]) / numIntPoints;
+
+	xscale = frames[0][2][0] + currentIntPoint * xscaleFactor;
+	yscale = frames[0][2][1] + currentIntPoint * yscaleFactor;
+	zscale = frames[0][2][2] + currentIntPoint * zscaleFactor;
 }
 
 void timer(int value) {
 
+	setTranslation();
 	setRotation();
+	setScale();
 
 	currentIntPoint += reflect;
 	if (currentIntPoint >= numIntPoints || currentIntPoint <= 0) { reflect *= -1; }
@@ -495,8 +458,6 @@ int main(int argc, char** argv)
 	glutReshapeFunc(reshape);
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(specialkey);
-	glutMouseFunc(mouse);
-	glutMotionFunc(mouseMotion);
 	glutTimerFunc(refreshTimer, timer, 0); // next timer call milliseconds later
 	createmenu();
 
