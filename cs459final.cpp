@@ -41,6 +41,7 @@ bool mouseDown = false;
 //For translating object
 float xrot = 0.0f;
 float yrot = 0.0f;
+float zrot = 0.0f;
 float xdiff = 0.0f;
 float ydiff = 0.0f;
 float scalex = 0.0f;
@@ -51,11 +52,14 @@ float xtrans0 = 0;
 float ytrans0 = 0;
 float xtrans = 0;
 float ytrans = 0;
-float reflect = 1;
+float ztrans = 0;
+int reflect = 1;
 
 int refreshTimer = 15; //time between refreshes in milliseconds
-int numIntPoints = 20; //number of points to interpolate
-int translationFrames[2][3] = { { 0,0,0 },{ 4,4,4 } }; //translation "key frames"
+int numIntPoints = 200; //number of points to interpolate
+float translationFrames[2][3] = { { 0,0,0 },{ 4,4,4 } }; //translation "key frames"
+float rotationFrames[2][3] = { { -100,-100,-100 },{ 300,200,100 } }; //rotation "key frames"
+int currentIntPoint = 0;
 
 bool t, s, r = true, both = false;
 
@@ -448,12 +452,23 @@ void createmenu(void) {
 	glutAttachMenu(GLUT_RIGHT_BUTTON);
 }
 
+void setRotation() {
+
+	float xrotFactor = (rotationFrames[1][0] - rotationFrames[0][0]) / numIntPoints;
+	float yrotFactor = (rotationFrames[1][1] - rotationFrames[0][1]) / numIntPoints;
+	float zrotFactor = (rotationFrames[1][2] - rotationFrames[0][2]) / numIntPoints;
+
+	xrot = rotationFrames[0][0] + currentIntPoint * xrotFactor;
+	yrot = rotationFrames[0][1] + currentIntPoint * yrotFactor;
+	zrot = rotationFrames[0][2] + currentIntPoint * zrotFactor;
+}
+
 void timer(int value) {
-	if (xtrans > 1.0 || xtrans < -1.0) { reflect *= -1; }
-	xtrans += 0.01 * reflect;
-	ytrans += 0.01 * reflect;
-	xrot += 1 * reflect;
-	yrot += 1;
+
+	setRotation();
+
+	currentIntPoint += reflect;
+	if (currentIntPoint >= numIntPoints || currentIntPoint <= 0) { reflect *= -1; }
 
 	glutPostRedisplay();      // Post re-paint request to activate display()
 	glutTimerFunc(refreshTimer, timer, 0);
