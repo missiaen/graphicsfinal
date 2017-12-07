@@ -17,18 +17,18 @@
 #define PI 3.14159265 
 
 static float alpha = 0.0;
-static float beta = PI/6.0;
+static float beta = PI / 6.0;
 static GLdouble cpos[3];
-static GLint angleView=30.0;
+static GLint angleView = 30.0;
 bool flag = true;//used for color change
 
-static GLfloat lpos[]  = {-1.0, 2.0, 1.0, 1.0};
-static GLfloat white[] = {1.0, 1.0, 1.0, 1.0};
-static GLfloat black[] = {0.0, 0.0, 0.0, 1.0};
-static GLfloat red[]   = {1.0, 0.0, 0.0, 1.0};
-static GLfloat blue[]  = {0.0, 0.0, 1.0, 1.0};
+static GLfloat lpos[] = { -1.0, 2.0, 1.0, 1.0 };
+static GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
+static GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
+static GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
+static GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
 
-static GLint numVertices,numPolygons,numEdges;
+static GLint numVertices, numPolygons, numEdges;
 static GLfloat **vdata;   //array for vertex data
 static GLuint **pdata;    //array for polygon data (vertex indices)
 static GLuint *psize;     //array for polygon size
@@ -51,10 +51,11 @@ float xtrans0 = 0;
 float ytrans0 = 0;
 float xtrans = 0;
 float ytrans = 0;
+float reflect = 1;
 
 int refreshTimer = 15; //time between refreshes in milliseconds
 int numIntPoints = 20; //number of points to interpolate
-int translationFrames[2][3] = { {0,0,0}, {4,4,4} }; //translation "key frames"
+int translationFrames[2][3] = { { 0,0,0 },{ 4,4,4 } }; //translation "key frames"
 
 bool t, s, r = true, both = false;
 
@@ -80,12 +81,12 @@ void writemessage()
 
 
 void readOFF()//method to read .off format data. Borrowed partially form Dr. Zeyun Yu homework
-	//modified further to read polygons of any size
-	//nonconvex and nonflat polygons may not be rendered correctly
+			  //modified further to read polygons of any size
+			  //nonconvex and nonflat polygons may not be rendered correctly
 {
-	int n,j;
-	int a,b;
-	float x,y,z;
+	int n, j;
+	int a, b;
+	float x, y, z;
 	float resize;
 	char line[256];
 
@@ -95,53 +96,53 @@ void readOFF()//method to read .off format data. Borrowed partially form Dr. Zey
 	fin = NULL;
 	while (fin == NULL) {
 		printf("\n\nEnter an .off file name including extension (or press Enter to abort): ");
-		int result=scanf("%99[^\n]%*c",filename);
-		if(result!=1) exit(0);
-		fin =  fopen(filename,"rb");
+		int result = scanf("%99[^\n]%*c", filename);
+		if (result != 1) exit(0);
+		fin = fopen(filename, "rb");
 	};
 
 	/* OFF format */
-	while (fgets(line,256,fin) != NULL) {
-		if (line[0]=='O' && line[1]=='F' && line[2]=='F')
+	while (fgets(line, 256, fin) != NULL) {
+		if (line[0] == 'O' && line[1] == 'F' && line[2] == 'F')
 			break;
 	}
-	fscanf(fin,"%d %d %d\n",&numVertices,&numPolygons,&numEdges);
+	fscanf(fin, "%d %d %d\n", &numVertices, &numPolygons, &numEdges);
 
-	printf("Number of vertices  = %d\n",numVertices);
-	printf("Number of polygons = %d\n",numPolygons);
-	printf("Number of edges = %d\n",numEdges);
+	printf("Number of vertices  = %d\n", numVertices);
+	printf("Number of polygons = %d\n", numPolygons);
+	printf("Number of edges = %d\n", numEdges);
 	printf("loading vedrtices and polygons... ");
 
-	vdata=new GLfloat*[numVertices];
-	for(int i=0;i<numVertices;i++)
-		vdata[i]=new GLfloat[3];
+	vdata = new GLfloat*[numVertices];
+	for (int i = 0; i<numVertices; i++)
+		vdata[i] = new GLfloat[3];
 
-	pdata=new GLuint*[numPolygons]; //array for storing polygon data (vertex indices)
-	psize=new GLuint[numPolygons];  //array for storing polygon size
+	pdata = new GLuint*[numPolygons]; //array for storing polygon data (vertex indices)
+	psize = new GLuint[numPolygons];  //array for storing polygon size
 
 	resize = 0.0001;
 	for (n = 0; n < numVertices; n++) { //read vertex data
-		fscanf(fin,"%f %f %f\n",&x,&y,&z);
+		fscanf(fin, "%f %f %f\n", &x, &y, &z);
 		vdata[n][0] = x;
-		resize = max(resize,fabs(x));
+		resize = max(resize, fabs(x));
 		vdata[n][1] = y;
-		resize = max(resize,fabs(y));
+		resize = max(resize, fabs(y));
 		vdata[n][2] = z;
-		resize = max(resize,fabs(z));
+		resize = max(resize, fabs(z));
 	}
 
 	for (n = 0; n < numVertices; n++) { //adjust vertex data
-		vdata[n][0] = vdata[n][0]/resize;
-		vdata[n][1] = vdata[n][1]/resize;
-		vdata[n][2] = vdata[n][2]/resize;
+		vdata[n][0] = vdata[n][0] / resize;
+		vdata[n][1] = vdata[n][1] / resize;
+		vdata[n][2] = vdata[n][2] / resize;
 	}
 
 	for (n = 0; n < numPolygons; n++) {
-		fscanf(fin,"%d",&a);
+		fscanf(fin, "%d", &a);
 		psize[n] = a;  //store n-th polygon size in psize[n]
-		pdata[n]=new GLuint[a];		
+		pdata[n] = new GLuint[a];
 		for (j = 0; j < a; j++) { //read and save vertices of n-th polygon
-			fscanf(fin,"%d",&b);
+			fscanf(fin, "%d", &b);
 			pdata[n][j] = b;
 		}
 	}
@@ -151,43 +152,43 @@ void readOFF()//method to read .off format data. Borrowed partially form Dr. Zey
 }
 
 void calculateNormal()//calculates the normal vector for every polygon
-	//using the first three vertices, assuming they occur in ccw order
+					  //using the first three vertices, assuming they occur in ccw order
 {
-	normals=new GLfloat*[numPolygons];
-	for(int i=0;i<numPolygons;i++)
-		normals[i]=new GLfloat[3];
+	normals = new GLfloat*[numPolygons];
+	for (int i = 0; i<numPolygons; i++)
+		normals[i] = new GLfloat[3];
 
-	for(int i=0;i<numPolygons;i++){
+	for (int i = 0; i<numPolygons; i++) {
 
-		GLint t1=pdata[i][0],t2=pdata[i][1],t3=pdata[i][2];
-		GLfloat v1[3]={vdata[t1][0],vdata[t1][1],vdata[t1][2]};
-		GLfloat v2[3]={vdata[t2][0],vdata[t2][1],vdata[t2][2]};
-		GLfloat v3[3]={vdata[t3][0],vdata[t3][1],vdata[t3][2]};
+		GLint t1 = pdata[i][0], t2 = pdata[i][1], t3 = pdata[i][2];
+		GLfloat v1[3] = { vdata[t1][0],vdata[t1][1],vdata[t1][2] };
+		GLfloat v2[3] = { vdata[t2][0],vdata[t2][1],vdata[t2][2] };
+		GLfloat v3[3] = { vdata[t3][0],vdata[t3][1],vdata[t3][2] };
 
-		GLfloat n1[3] = {v2[0] - v1[0],v2[1] - v1[1],v2[2] - v1[2]};
-		GLfloat n2[3] = {v3[0] - v1[0],v3[1] - v1[1],v3[2] - v1[2]};
+		GLfloat n1[3] = { v2[0] - v1[0],v2[1] - v1[1],v2[2] - v1[2] };
+		GLfloat n2[3] = { v3[0] - v1[0],v3[1] - v1[1],v3[2] - v1[2] };
 
 		float	normx = (n1[1] * n2[2]) - (n2[1] * n1[2]),
 			normy = (n1[2] * n2[0]) - (n2[2] * n1[0]),
 			normz = (n1[0] * n2[1]) - (n2[0] * n1[1]);
 
-		float factor = sqrt(pow(normx,2) + pow(normy,2) + pow(normz,2));
+		float factor = sqrt(pow(normx, 2) + pow(normy, 2) + pow(normz, 2));
 		normx /= factor;
 		normy /= factor;
 		normz /= factor;
-		normals[i][0]=normx;
-		normals[i][1]=normy;
-		normals[i][2]=normz;
+		normals[i][0] = normx;
+		normals[i][1] = normy;
+		normals[i][2] = normz;
 		//---------------------------------------------------------------------
 
 	}
 }
 
-void setRandomColor(){
+void setRandomColor() {
 	bool flip = false;
-	cdata=new GLfloat*[numPolygons];
+	cdata = new GLfloat*[numPolygons];
 	for (int i = 0; i < numPolygons; i++) {
-		cdata[i]=new GLfloat[4];
+		cdata[i] = new GLfloat[4];
 		cdata[i][0] = ((double)i / (numPolygons));
 		cdata[i][1] = 1 - cdata[i][0];
 		cdata[i][2] = (double)(i % 1000) / 1000;
@@ -200,27 +201,27 @@ void setRandomColor(){
 
 void reshape(int w, int h)
 {
-	glViewport(0, 0, (GLsizei) w, (GLsizei) h);
+	glViewport(0, 0, (GLsizei)w, (GLsizei)h);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluPerspective(angleView, (GLfloat) w / (GLfloat) h, 1.5, 20.0);
+	gluPerspective(angleView, (GLfloat)w / (GLfloat)h, 1.5, 20.0);
 	glMatrixMode(GL_MODELVIEW);
 }
 
 void display(void)
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	cpos[0] = 5.0 * cos(beta) * sin(alpha);
 	cpos[1] = 5.0 * sin(beta);
 	cpos[2] = 5.0 * cos(beta) * cos(alpha);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt(cpos[0],cpos[1],cpos[2], 0.0,0.0,0.0, 0.0,1.0,0.0);
+	gluLookAt(cpos[0], cpos[1], cpos[2], 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 
-	glLightfv(GL_LIGHT0, GL_POSITION, lpos);	
+	glLightfv(GL_LIGHT0, GL_POSITION, lpos);
 	glPushMatrix();
-	glTranslatef(lpos[0],lpos[1],lpos[2]);
+	glTranslatef(lpos[0], lpos[1], lpos[2]);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, white);
 	glMaterialfv(GL_FRONT, GL_EMISSION, white);
 	glutSolidSphere(0.05, 10, 8);
@@ -245,15 +246,15 @@ void display(void)
 	for (int n = 0; n < numPolygons; n++) {
 		//Draw each face
 		glBegin(GL_POLYGON);
-			//Set the color
-			if(flag)
-				glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, cdata[n]);
+		//Set the color
+		if (flag)
+			glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, cdata[n]);
 
-			glNormal3fv(normals[n]);
-			//Draw each vertex for the face from the pdata array
-			for (int c = 0; c < psize[n]; c++) {
-				glVertex3fv(vdata[pdata[n][c]]);
-			}
+		glNormal3fv(normals[n]);
+		//Draw each vertex for the face from the pdata array
+		for (int c = 0; c < psize[n]; c++) {
+			glVertex3fv(vdata[pdata[n][c]]);
+		}
 		glEnd();
 	}
 
@@ -286,7 +287,7 @@ void keyboard(unsigned char key, int x, int y)
 	switch (key) {
 	case 27:
 		exit(0);
-		break; 
+		break;
 	case 'c':   // change off file        
 		printf("change off file...\n");
 		readOFF();
@@ -294,27 +295,27 @@ void keyboard(unsigned char key, int x, int y)
 		calculateNormal();
 		glutPostRedisplay();
 		break;
-	case 'x':                
+	case 'x':
 		lpos[0] = lpos[0] + 0.2;
 		glutPostRedisplay();
 		break;
-	case 'X':                 
+	case 'X':
 		lpos[0] = lpos[0] - 0.2;
 		glutPostRedisplay();
 		break;
-	case 'y':                
+	case 'y':
 		lpos[1] = lpos[1] + 0.2;
 		glutPostRedisplay();
 		break;
-	case 'Y':                 
+	case 'Y':
 		lpos[1] = lpos[1] - 0.2;
 		glutPostRedisplay();
 		break;
-	case 'z':                
+	case 'z':
 		lpos[2] = lpos[2] + 0.2;
 		glutPostRedisplay();
 		break;
-	case 'Z':                 
+	case 'Z':
 		lpos[2] = lpos[2] - 0.2;
 		glutPostRedisplay();
 		break;
@@ -353,7 +354,7 @@ void specialkey(GLint key, int x, int y)
 		}
 		break;
 	default:
-		break;  
+		break;
 	}
 }
 
@@ -448,17 +449,22 @@ void createmenu(void) {
 }
 
 void timer(int value) {
-	glutPostRedisplay();      // Post re-paint request to activate display()
+	if (xtrans > 1.0 || xtrans < -1.0) { reflect *= -1; }
+	xtrans += 0.01 * reflect;
+	ytrans += 0.01 * reflect;
+	xrot += 1 * reflect;
+	yrot += 1;
 
-	glutTimerFunc(refreshTimer, timer, 0); // next timer call milliseconds later
+	glutPostRedisplay();      // Post re-paint request to activate display()
+	glutTimerFunc(refreshTimer, timer, 0);
 }
 
 int main(int argc, char** argv)
 {
-	writemessage(); 
+	writemessage();
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-	glutInitWindowSize(1200, 800); 
+	glutInitWindowSize(1200, 800);
 	glutInitWindowPosition(0, 0);
 	glutCreateWindow(argv[0]);
 
@@ -470,12 +476,13 @@ int main(int argc, char** argv)
 	glEnable(GL_LIGHT0);
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 
-	glutDisplayFunc(display); 
-	glutReshapeFunc(reshape); 
+	glutDisplayFunc(display);
+	glutReshapeFunc(reshape);
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(specialkey);
 	glutMouseFunc(mouse);
 	glutMotionFunc(mouseMotion);
+	glutTimerFunc(refreshTimer, timer, 0); // next timer call milliseconds later
 	createmenu();
 
 	readOFF();
