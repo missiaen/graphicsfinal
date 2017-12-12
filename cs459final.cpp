@@ -27,6 +27,7 @@ static GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
 static GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
 static GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
 static GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
+static GLfloat transparent[] = { 1.0, 1.0, 1.0, 0.40 };
 
 static GLint numVertices, numPolygons, numEdges;
 static GLfloat **vdata;   //array for vertex data
@@ -59,9 +60,9 @@ int nextIndex = 1;
 //3rd index x, y, z
 float frames[maxframes][3][3] = {
 	{ {-1,1,-1}, {-100,-100,-100}, {0.9,0.9,0.9} },
-	{ {1,-1,0}, {300,200,100}, {1.0,2,2} }
+	{ {1,2,0}, {300,200,100}, {1.0,2,2} }
 };
-float zoom = 5.0;
+float zoom = 15.0;
 
 
 bool both = false;
@@ -228,33 +229,7 @@ void reshape(int w, int h)
 	glMatrixMode(GL_MODELVIEW);
 }
 
-void display(void)
-{
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	cpos[0] = 5.0 * cos(beta) * sin(alpha);
-	cpos[1] = 5.0 * sin(beta);
-	cpos[2] = zoom * cos(beta) * cos(alpha);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	gluLookAt(cpos[0], cpos[1], cpos[2], 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
-
-	glLightfv(GL_LIGHT0, GL_POSITION, lpos);
-	glPushMatrix();
-	glTranslatef(lpos[0], lpos[1], lpos[2]);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, white);
-	glMaterialfv(GL_FRONT, GL_EMISSION, white);
-	glutSolidSphere(0.05, 10, 8);
-	glPopMatrix();
-
-	glMaterialfv(GL_FRONT, GL_EMISSION, black);
-	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, red);
-
-	glPointSize(4.0);
-	glLineWidth(2.0);
-
-	glPushMatrix();
-
+void drawPolygon() {
 	//Transform based on mouse input
 	glTranslatef(currentframe[0][0], currentframe[0][1], currentframe[0][2]);
 	glRotatef(currentframe[1][0], 1.0f, 0.0f, 0.0f);
@@ -292,7 +267,81 @@ void display(void)
 		}
 		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
+}
 
+void drawMirror() {
+
+	float size = 4.0;
+
+	glDisable(GL_LIGHTING);
+	glBegin(GL_QUADS);
+	glNormal3f(0.0, 1.0, 0.0);
+	glVertex3f(-size, 0.0, -size);
+	glVertex3f(-size, 0.0, size);
+	glVertex3f(size, 0.0, size);
+	glVertex3f(size, 0.0, -size);
+	glEnd();
+	glEnable(GL_LIGHTING);
+}
+
+void display(void)
+{
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+	cpos[0] = 5.0 * cos(beta) * sin(alpha);
+	cpos[1] = 5.0 * sin(beta);
+	cpos[2] = zoom * cos(beta) * cos(alpha);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	gluLookAt(cpos[0], cpos[1], cpos[2], 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+
+
+	glLightfv(GL_LIGHT0, GL_POSITION, lpos);
+	glPushMatrix();
+	glTranslatef(lpos[0], lpos[1], lpos[2]);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, white);
+	glMaterialfv(GL_FRONT, GL_EMISSION, white);
+	glutSolidSphere(0.05, 10, 8);
+	glPopMatrix();
+
+	glDisable(GL_DEPTH_TEST);
+	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+
+	glEnable(GL_STENCIL_TEST);
+	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
+	glStencilFunc(GL_ALWAYS, 1, 0xffffff);
+
+	drawMirror();
+
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+
+	glStencilFunc(GL_EQUAL, 1, 0xffffff);
+	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+	glMaterialfv(GL_FRONT, GL_EMISSION, black);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, red);
+
+	glPointSize(4.0);
+	glLineWidth(2.0);
+
+	glPushMatrix();
+	glScalef(1.0, -1.0, 1.0);
+	glColor4fv(transparent);
+	drawPolygon();
+	glPopMatrix();
+
+	glDisable(GL_STENCIL_TEST);
+
+	glPushMatrix();
+	//draw the mirror
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	drawMirror();
+	glPopMatrix();
+
+	glPushMatrix();
+	drawPolygon();
 	glPopMatrix();
 
 	glFlush();
@@ -368,7 +417,7 @@ void keyboard(unsigned char key, int x, int y)
 	default:
 		break;
 	}
-	glutPostRedisplay;
+	glutPostRedisplay();
 }
 
 void specialkey(GLint key, int x, int y)
@@ -500,6 +549,7 @@ int main(int argc, char** argv)
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
 	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+
 
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
