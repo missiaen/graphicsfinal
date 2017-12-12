@@ -168,6 +168,8 @@ void setInterpolationPoints()
 		res = scanf("%d", &numIntPoints);
 		if (res >= 0) {
 			goodNum = true;
+		} else {
+			printf('\n\nThe number was less than or equal to zero, please use a higher number:\n');
 		}
 	}
 }
@@ -348,22 +350,64 @@ void display(void)
 	glutSwapBuffers();
 }
 
-void addKeyframe()
+void addKeyframe(char user)
 {
-	//TODO: Add a keyframe from user input right here
+	if (user == 'u') {
+	    char comma;
+	    bool goodNum = false;
+	    printf("\n\nEnter the X,Y,Z coordinates(in a comma seperated list): ");
+		scanf("%d,%c,%d,%c,%d", &frames[numFrames][0][0], comma, &frames[numFrames][0][1], comma, &frames[numFrames][0][2]);
+	    while (!goodNum) {
+	    	if (res >= 0) {
+	    		goodNum = true;
+	    	} else {
+	    		printf('\n\nThe Y coordinate was less than or equal to zero, please use a higher number:\n');
+	    	}
+	    }
 
-	//Translation
-	frames[numFrames][0][0] = rand() / RAND_MAX;
-	frames[numFrames][0][1] = rand() / RAND_MAX;
-	frames[numFrames][0][2] = rand() / RAND_MAX;
-	//Rotation
-	frames[numFrames][1][0] = rand() / (RAND_MAX / 100);
-	frames[numFrames][1][1] = rand() / (RAND_MAX / 100);
-	frames[numFrames][1][2] = rand() / (RAND_MAX / 100);
-	//Scaling
-	frames[numFrames][2][0] = 1;
-	frames[numFrames][2][1] = 1;
-	frames[numFrames][2][2] = 1;
+        goodNum = false;
+
+		printf("\n\nEnter the rotations of X,Y,Z in degrees (in a comma seperated list): ");
+	    while (!goodNum) {
+	    	res = scanf("%d", &numIntPoints);
+	    	if (res >= 0) {
+	    		goodNum = true;
+	    	} else {
+	    		printf('\n\nThe number was less than or equal to zero, please use a higher number:\n');
+	    	}
+	    }
+
+        goodNum = false;
+
+		printf("\n\nEnter the scaler values of X,Y,Z (in a comma seperated list): ");
+	    while (!goodNum) {
+	    	res = scanf("%d", &numIntPoints);
+	    	if (res >= 0) {
+	    		goodNum = true;
+	    	} else {
+	    		printf('\n\nThe number was less than or equal to zero, please use a higher number:\n');
+	    	}
+	    }
+	} else {
+	    //Translation
+	    frames[numFrames][0][0] = rand() / RAND_MAX;
+	    frames[numFrames][0][1] = rand() / RAND_MAX;
+
+        // This is for the mirror
+		if (frames[numFrames][0][1] < 0) {
+            frames[numFrames][0][1] = 3;
+		}
+
+	    frames[numFrames][0][2] = rand() / RAND_MAX;
+	    //Rotation
+	    frames[numFrames][1][0] = rand() / (RAND_MAX / 100);
+	    frames[numFrames][1][1] = rand() / (RAND_MAX / 100);
+	    frames[numFrames][1][2] = rand() / (RAND_MAX / 100);
+	    //Scaling
+	    frames[numFrames][2][0] = 1;
+	    frames[numFrames][2][1] = 1;
+	    frames[numFrames][2][2] = 1;
+	}
 	numFrames++; if (numFrames >= maxframes) numFrames = maxframes - 1;
 
 }
@@ -414,6 +458,9 @@ void keyboard(unsigned char key, int x, int y)
 		break;
 	case 'a':
 		addKeyframe();
+		break;
+	case 'b':
+	    addKeyFrames('u');
 	default:
 		break;
 	}
