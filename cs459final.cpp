@@ -50,14 +50,11 @@ float ztrans = 0;
 int reflect = 1;
 
 int refreshTimer = 15; //time between refreshes in milliseconds
-int numIntPoints = 200; //number of points to interpolate
+int numIntPoints = 700; //number of points to interpolate
 
-//1st index frames number
-//2nd index translation, rotation, scale
-//3rd index x, y, z
 float frames[2][3][3] = {
-	{ {-1,1,-1}, {-100,-100,-100}, {0.9,0.9,0.9} },
-	{ {1,-1,0}, {300,200,100}, {1.0,2,2} }
+	{ { -1,1,-1 },{ -100,-100,-100 },{ 0.9,0.9,0.9 } },
+	{ { 1,-1,0 },{ 300,200,100 },{ 1.0,2,2 } }
 };
 int currentIntPoint = 0;
 
@@ -66,41 +63,35 @@ bool both = false;
 #define min(x,y) ((x)<(y) ? (x) : (y))
 #define max(x,y) ((x)>(y) ? (x) : (y))
 
-
-void writemessage()
-{
-	printf("\n\
-	Project 3 By Garrett Missiaen\n\
-	Reads an OFF file and allows translation, rotation, scaling, and different viewing modes\n\
-	l-------------------------- change color\n\
-	c ------------------------- change off files\n\
-	x, X, y, Y, z, Z ---------- change light source position\n\
-	F1 ------------------------ fullscreen\n\
-	ESC ----------------------- exit\n\
-	\n");
-}
-
-
 void readOFF()//method to read .off format data. Borrowed partially form Dr. Zeyun Yu homework
 			  //modified further to read polygons of any size
 			  //nonconvex and nonflat polygons may not be rendered correctly
 {
+	FILE* fin;
+	char filename[FILENAME_MAX];
+
+	fin = NULL;
+	printf("\n\nEnter an .off file name including extension: ");
+	while (fin == NULL) {
+		int result = scanf("%99[^\n]%*c", &filename);
+		fin = fopen(filename, "rb");
+	};
+
+	int res = 0;
+	bool goodNum = false;
+	printf("\n\nEnter the number of interpolation points(must be greater than 0): ");
+	while (!goodNum) {
+		res = scanf("%d", &numIntPoints);
+		if (res >= 0) {
+			goodNum = true;
+		}
+	};
+
 	int n, j;
 	int a, b;
 	float x, y, z;
 	float resize;
 	char line[256];
-
-	FILE* fin;
-	char filename[FILENAME_MAX];
-
-	fin = NULL;
-	while (fin == NULL) {
-		printf("\n\nEnter an .off file name including extension (or press Enter to abort): ");
-		int result = scanf("%99[^\n]%*c", filename);
-		if (result != 1) exit(0);
-		fin = fopen(filename, "rb");
-	};
 
 	/* OFF format */
 	while (fgets(line, 256, fin) != NULL) {
@@ -280,56 +271,6 @@ void display(void)
 	glutSwapBuffers();
 }
 
-
-
-void keyboard(unsigned char key, int x, int y)
-{
-	static int polygonmode[2];
-
-	switch (key) {
-	case 27:
-		exit(0);
-		break;
-	case 'c':   // change off file        
-		printf("change off file...\n");
-		readOFF();
-		setRandomColor();
-		calculateNormal();
-		glutPostRedisplay();
-		break;
-	case 'x':
-		lpos[0] = lpos[0] + 0.2;
-		glutPostRedisplay();
-		break;
-	case 'X':
-		lpos[0] = lpos[0] - 0.2;
-		glutPostRedisplay();
-		break;
-	case 'y':
-		lpos[1] = lpos[1] + 0.2;
-		glutPostRedisplay();
-		break;
-	case 'Y':
-		lpos[1] = lpos[1] - 0.2;
-		glutPostRedisplay();
-		break;
-	case 'z':
-		lpos[2] = lpos[2] + 0.2;
-		glutPostRedisplay();
-		break;
-	case 'Z':
-		lpos[2] = lpos[2] - 0.2;
-		glutPostRedisplay();
-		break;
-	case 'l':
-		flag = !flag;
-		glutPostRedisplay();
-		break;
-	default:
-		break;
-	}
-}
-
 void specialkey(GLint key, int x, int y)
 {
 	switch (key) {
@@ -348,48 +289,6 @@ void specialkey(GLint key, int x, int y)
 	}
 }
 
-void menu(int value) {
-	switch (value) {
-	case 0:
-		exit(0);
-		break;
-	case 1:
-		glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
-		both = false;
-		break;
-	case 2:
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		both = false;
-		break;
-	case 3:
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		both = false;
-		break;
-	case 4:
-		glPolygonMode(GL_BACK, GL_FILL);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-		both = true;
-		break;
-	default:
-		break;
-	}
-	glutPostRedisplay();
-}
-
-void createmenu(void) {
-
-	glutCreateMenu(menu);
-
-	// Create an entry
-	glutAddMenuEntry("Point Mode", 1);
-	glutAddMenuEntry("Line Mode", 2);
-	glutAddMenuEntry("Fill Mode", 3);
-	glutAddMenuEntry("Both Mode", 4);
-	glutAddMenuEntry("Exit", 0);
-
-	// Let the menu respond on the right mouse button
-	glutAttachMenu(GLUT_RIGHT_BUTTON);
-}
 
 void setTranslation() {
 
@@ -439,7 +338,6 @@ void timer(int value) {
 
 int main(int argc, char** argv)
 {
-	writemessage();
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
 	glutInitWindowSize(1200, 800);
@@ -456,10 +354,8 @@ int main(int argc, char** argv)
 
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
-	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(specialkey);
 	glutTimerFunc(refreshTimer, timer, 0); // next timer call milliseconds later
-	createmenu();
 
 	readOFF();
 	calculateNormal();
@@ -467,5 +363,3 @@ int main(int argc, char** argv)
 	glutMainLoop();
 	return 0;
 }
-
-
