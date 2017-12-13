@@ -14,16 +14,17 @@
 #include <string.h>
 #include <memory.h>
 #include <iostream>
+#include <iomanip>
 
 #define PI 3.14159265 
 
-static float alpha = 0.0;
-static float beta = PI / 6.0;
+float alpha = 0.0;
+float beta = PI / 6.0;
 static GLdouble cpos[3];
 static GLint angleView = 30.0;
 bool flag = true, pause = false;//used for color change
 
-static GLfloat lpos[] = { -1.0, 2.0, 1.0, 1.0 };
+static GLfloat lpos[] = { 1.0, 5.0, 1.0, 1.0 };
 static GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
 static GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
 static GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
@@ -50,27 +51,23 @@ int reflect = 1;
 int refreshTimer = 15; //time between refreshes in milliseconds
 int numIntPoints = 200; //number of points to interpolate
 int currentIntPoint = 0;
-int numFrames = 2;
+int numFrames = 4;
 int currIndex = 0;
 int nextIndex = 1;
 
-#define maxframes 20
+#define maxframes 100
 
 //1st index frames number
 //2nd index translation, rotation, scale
 //3rd index x, y, z
-float frames[maxframes][3][3]
-
-=
+float frames[maxframes][3][3] =
 {
-	{ { -1,1,-1 },{ -100,-100,-100 },{ 0.9,0.9,0.9 } },
-	{ { 1,2,0 },{ 300,200,100 },{ 1.0,2,2 } }
-}
-
-;
+	{ { 0,1,0 },{ 0,0,0 },{ 1,1,1 } },
+	{ { 0,1,0 },{ 0,180,0 },{ 2,2,2 } },
+	{ { 4,2,-3.5 },{ 0,180,-100 },{ 2,2,2 } },
+	{ { -1,2,-3.5 },{ 360,180,-100 },{ 2,0.7,2 } }
+};
 float zoom = 15.0;
-
-
 bool both = false;
 
 #define min(x,y) ((x)<(y) ? (x) : (y))
@@ -82,9 +79,10 @@ void writemessage()
 	printf("\n\
 	Final Project by Matthew Buchanan, Philip Kocol, and Garrett Missiaen\n\
 	Allows defining keyframs and animates between them\n\
-	a ------------------------- add random keyframe\n\
-	b ------------------------- add keyframe\n\
+	r ------------------------- add random keyframe\n\
+	a ------------------------- add keyframe\n\
 	l ------------------------- change color\n\
+	v ------------------------- view frames\n\
 	-, + ---------------------- change zoom\n\
 	c ------------------------- change off files\n\
 	x, X, y, Y, z, Z ---------- change light source position\n\
@@ -358,10 +356,10 @@ void addKeyframe(char user)
 	if (user == 'u') {
 
 		printf("\n\nEnter the X Y Z translation coordinates(in a list seperated by spaces): ");
-		std::cin >> frames[numFrames][0][0] >> frames[numFrames][0][1]>> frames[numFrames][0][2];
+		std::cin >> frames[numFrames][0][0] >> frames[numFrames][0][1] >> frames[numFrames][0][2];
 
-		if (frames[numFrames][0][1] <= 0) {
-			printf("\n\nThe Y coordinate was less than or equal to zero, and is now being assigned to 1\n");
+		if (frames[numFrames][0][1] < 1) {
+			printf("\n\nThe Y coordinate was less than 1, and is now being assigned to 1\n");
 			frames[numFrames][0][1] = 1;
 		}
 
@@ -374,27 +372,39 @@ void addKeyframe(char user)
 	}
 	else {
 		//Translation
-		frames[numFrames][0][0] = rand() / RAND_MAX;
-		frames[numFrames][0][1] = rand() / RAND_MAX;
+		frames[numFrames][0][0] = ((float)rand() / (RAND_MAX / 5)) - 2;
+		frames[numFrames][0][1] = ((float)rand() / (RAND_MAX / 5)) - 2;
+		frames[numFrames][0][2] = ((float)rand() / (RAND_MAX / 5)) - 2;
 
 		// This is for the mirror
-		if (frames[numFrames][0][1] < 0) {
-			frames[numFrames][0][1] = 3;
+		if (frames[numFrames][0][1] < 1) {
+			frames[numFrames][0][1] = 2;
 		}
 
-		frames[numFrames][0][2] = rand() / RAND_MAX;
 		//Rotation
-		frames[numFrames][1][0] = rand() / (RAND_MAX / 100);
-		frames[numFrames][1][1] = rand() / (RAND_MAX / 100);
-		frames[numFrames][1][2] = rand() / (RAND_MAX / 100);
+		frames[numFrames][1][0] = (float)rand() / (RAND_MAX / 500);
+		frames[numFrames][1][1] = (float)rand() / (RAND_MAX / 500);
+		frames[numFrames][1][2] = (float)rand() / (RAND_MAX / 500);
 		//Scaling
-		frames[numFrames][2][0] = 1;
-		frames[numFrames][2][1] = 1;
-		frames[numFrames][2][2] = 1;
+		frames[numFrames][2][0] = (float)rand() / RAND_MAX + 1;
+		frames[numFrames][2][1] = (float)rand() / RAND_MAX + 1;
+		frames[numFrames][2][2] = (float)rand() / RAND_MAX + 1;
 	}
 
 	numFrames++; if (numFrames >= maxframes) numFrames = maxframes - 1;
 
+}
+
+void outputFrames()
+{
+	std::cout.precision(1);
+	std::cout.setf(std::ios::fixed);
+	for (int c = 0; c < numFrames; c++) {
+		std::cout << "\n" << c + 1 << "\tX\tY\tZ\t\n";
+		std::cout << "T\t" << frames[c][0][0] << "\t" << frames[c][0][1] << "\t" << frames[c][0][2] << "\n";
+		std::cout << "R\t" << frames[c][1][0] << "\t" << frames[c][1][1] << "\t" << frames[c][1][2] << "\n";
+		std::cout << "S\t" << frames[c][2][0] << "\t" << frames[c][2][1] << "\t" << frames[c][2][2] << "\n";
+	}
 }
 
 void keyboard(unsigned char key, int x, int y)
@@ -441,11 +451,15 @@ void keyboard(unsigned char key, int x, int y)
 		zoom += 1.0;
 		if (zoom > 30) zoom = 30;
 		break;
-	case 'a':
+	case 'r':
 		addKeyframe('r');
 		break;
-	case 'b':
+	case 'a':
 		addKeyframe('u');
+		break;
+	case 'v':
+		outputFrames();
+		break;
 	default:
 		break;
 	}
@@ -464,6 +478,22 @@ void specialkey(GLint key, int x, int y)
 			glutReshapeWindow(500, 500);
 			glutPositionWindow(50, 50);
 		}
+		break;
+	case GLUT_KEY_UP:
+		beta += 0.1;
+		glutPostRedisplay();
+		break;
+	case GLUT_KEY_DOWN:
+		beta -= 0.1;
+		glutPostRedisplay();
+		break;
+	case GLUT_KEY_LEFT:
+		alpha -= 0.1;
+		glutPostRedisplay();
+		break;
+	case GLUT_KEY_RIGHT:
+		alpha += 0.1;
+		glutPostRedisplay();
 		break;
 	default:
 		break;
@@ -589,14 +619,6 @@ int main(int argc, char** argv)
 	glutSpecialFunc(specialkey);
 	glutTimerFunc(refreshTimer, timer, 0); // next timer call milliseconds later
 	createmenu();
-
-	/*
-	int i = 0;
-	while (i < 2) {
-		i++;
-		addKeyframe('u');
-	}
-	*/
 
 	readOFF();
 	calculateNormal();
