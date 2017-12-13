@@ -113,6 +113,56 @@ void readOFF()//method to read .off format data. Borrowed partially form Dr. Zey
 	std::cin >> filename;
 	fin = fopen(filename, "rb");
 
+	/* OFF format */
+	while (fgets(line, 256, fin) != NULL) {
+		if (line[0] == 'O' && line[1] == 'F' && line[2] == 'F')
+			break;
+	}
+	fscanf(fin, "%d %d %d\n", &numVertices, &numPolygons, &numEdges);
+
+	printf("Number of vertices  = %d\n", numVertices);
+	printf("Number of polygons = %d\n", numPolygons);
+	printf("Number of edges = %d\n", numEdges);
+	printf("loading vedrtices and polygons... ");
+
+	vdata = new GLfloat*[numVertices];
+	for (int i = 0; i<numVertices; i++)
+		vdata[i] = new GLfloat[3];
+
+	pdata = new GLuint*[numPolygons]; //array for storing polygon data (vertex indices)
+	psize = new GLuint[numPolygons];  //array for storing polygon size
+
+	resize = 0.0001;
+	for (n = 0; n < numVertices; n++) { //read vertex data
+		fscanf(fin, "%f %f %f\n", &x, &y, &z);
+		vdata[n][0] = x;
+		resize = max(resize, fabs(x));
+		vdata[n][1] = y;
+		resize = max(resize, fabs(y));
+		vdata[n][2] = z;
+		resize = max(resize, fabs(z));
+	}
+
+	for (n = 0; n < numVertices; n++) { //adjust vertex data
+		vdata[n][0] = vdata[n][0] / resize;
+		vdata[n][1] = vdata[n][1] / resize;
+		vdata[n][2] = vdata[n][2] / resize;
+	}
+
+	for (n = 0; n < numPolygons; n++) {
+		fscanf(fin, "%d", &a);
+		psize[n] = a;  //store n-th polygon size in psize[n]
+		pdata[n] = new GLuint[a];
+		for (j = 0; j < a; j++) { //read and save vertices of n-th polygon
+			fscanf(fin, "%d", &b);
+			pdata[n][j] = b;
+		}
+	}
+	fclose(fin);
+	printf("done.\n");
+
+}
+
 void setInterpolationPoints()
 {
 	int res = 0;
@@ -125,6 +175,61 @@ void setInterpolationPoints()
 		}
 		else {
 			printf("\n\nThe number was less than or equal to zero, please use a higher number:\n");
+		}
+	}
+}
+
+void calculateNormal()//calculates the normal vector for every polygon
+					  //using the first three vertices, assuming they occur in ccw order
+{
+	normals = new GLfloat*[numPolygons];
+	for (int i = 0; i<numPolygons; i++)
+		normals[i] = new GLfloat[3];
+
+	for (int i = 0; i<numPolygons; i++) {
+
+		GLint t1 = pdata[i][0], t2 = pdata[i][1], t3 = pdata[i][2];
+		GLfloat v1[3] = { vdata[t1][0],vdata[t1][1],vdata[t1][2] };
+		GLfloat v2[3] = { vdata[t2][0],vdata[t2][1],vdata[t2][2] };
+		GLfloat v3[3] = { vdata[t3][0],vdata[t3][1],vdata[t3][2] };
+
+		GLfloat n1[3] = { v2[0] - v1[0],v2[1] - v1[1],v2[2] - v1[2] };
+		GLfloat n2[3] = { v3[0] - v1[0],v3[1] - v1[1],v3[2] - v1[2] };
+
+		float	normx = (n1[1] * n2[2]) - (n2[1] * n1[2]),
+			normy = (n1[2] * n2[0]) - (n2[2] * n1[0]),
+			normz = (n1[0] * n2[1]) - (n2[0] * n1[1]);
+
+		float factor = sqrt(pow(normx, 2) + pow(normy, 2) + pow(normz, 2));
+		normx /= factor;
+		normy /= factor;
+		normz /= factor;
+		normals[i][0] = normx;
+		normals[i][1] = normy;
+		normals[i][2] = normz;
+	}
+}
+
+void setRandomColor() {
+	bool flip = false;
+	cdata = new GLfloat*[numPolygons];
+	for (int i = 0; i < numPolygons; i++) {
+		cdata[i] = new GLfloat[4];
+		cdata[i][0] = ((double)i / (numPolygons));
+		cdata[i][1] = 1 - cdata[i][0];
+		cdata[i][2] = (double)(i % 1000) / 1000;
+		cdata[i][3] = 1.0;
+
+		if ((i % 1000) == 0) flip = !flip;
+		if (flip) cdata[i][2] = 1 - cdata[i][2];
+	}
+}
+
+void reshape(int w, int h)
+{
+	glViewport(0, 0, (GLsizei)w, (GLsizei)h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
 	gluPerspective(angleView, (GLfloat)w / (GLfloat)h, 1.5, 40.0);
 	glMatrixMode(GL_MODELVIEW);
 }
