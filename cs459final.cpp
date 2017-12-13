@@ -2,6 +2,9 @@
 // CS459
 // By Matthew Buchanan, Philip Kocol, and Garrett Missiaen
 // readOFF code taken from Lab 8
+// rotation code taken from lab 7
+// guidelines for stencil buffer mirroring found here:
+// https://www.opengl.org/archives/resources/code/samples/mjktips/Reflect.html
 
 #define _CRT_SECURE_NO_WARNINGS
 #include <GL/glut.h>
@@ -29,7 +32,7 @@ static GLfloat white[] = { 1.0, 1.0, 1.0, 1.0 };
 static GLfloat black[] = { 0.0, 0.0, 0.0, 1.0 };
 static GLfloat red[] = { 1.0, 0.0, 0.0, 1.0 };
 static GLfloat blue[] = { 0.0, 0.0, 1.0, 1.0 };
-static GLfloat transparent[] = { 1.0, 1.0, 1.0, 0.40 };
+static GLfloat transparent[] = { 1.0, 1.0, 1.0, 0.05 };
 
 static GLint numVertices, numPolygons, numEdges;
 static GLfloat **vdata;   //array for vertex data
@@ -274,8 +277,9 @@ void drawPolygon() {
 
 void drawMirror() {
 
-	float size = 4.0;
+	float size = 5.0;
 
+	//turn off lighting so transparency works
 	glDisable(GL_LIGHTING);
 	glBegin(GL_QUADS);
 	glNormal3f(0.0, 1.0, 0.0);
@@ -289,8 +293,8 @@ void drawMirror() {
 
 void display(void)
 {
+	//clear stencil buffer so we can update it
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
 	cpos[0] = 5.0 * cos(beta) * sin(alpha);
 	cpos[1] = 5.0 * sin(beta);
 	cpos[2] = zoom * cos(beta) * cos(alpha);
@@ -307,18 +311,23 @@ void display(void)
 	glutSolidSphere(0.05, 10, 8);
 	glPopMatrix();
 
+	//turn of depth and color to set up stencil buffer
 	glDisable(GL_DEPTH_TEST);
 	glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 
+	//write a 1 into the stencil buffer where ever we draw
 	glEnable(GL_STENCIL_TEST);
 	glStencilOp(GL_REPLACE, GL_REPLACE, GL_REPLACE);
 	glStencilFunc(GL_ALWAYS, 1, 0xffffff);
 
+	//draw to the stencil buffer with same dimensions as mirror
 	drawMirror();
 
+	//turn color and depth back on
 	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glEnable(GL_DEPTH_TEST);
 
+	//only keep pixels drawn within stencil buffer
 	glStencilFunc(GL_EQUAL, 1, 0xffffff);
 	glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
@@ -328,13 +337,16 @@ void display(void)
 	glPointSize(4.0);
 	glLineWidth(2.0);
 
+	//draw the reflection (which will be clipped by SB)
 	glPushMatrix();
 	glScalef(1.0, -1.0, 1.0);
 	glColor4fv(transparent);
 	drawPolygon();
 	glPopMatrix();
 
+	//turn of stencil
 	glDisable(GL_STENCIL_TEST);
+
 
 	glPushMatrix();
 	//draw the mirror
@@ -480,19 +492,21 @@ void specialkey(GLint key, int x, int y)
 		}
 		break;
 	case GLUT_KEY_UP:
-		beta += 0.1;
+		if (beta < 0.45*PI) beta = beta + PI / 180;
 		glutPostRedisplay();
 		break;
 	case GLUT_KEY_DOWN:
-		beta -= 0.1;
+		if (beta > -0.45*PI) beta = beta - PI / 180;
 		glutPostRedisplay();
 		break;
 	case GLUT_KEY_LEFT:
-		alpha -= 0.1;
+		alpha = alpha - PI / 180;
+		if (alpha < 0) alpha = alpha + 2 * PI;
 		glutPostRedisplay();
 		break;
 	case GLUT_KEY_RIGHT:
-		alpha += 0.1;
+		alpha = alpha + PI / 180;
+		if (alpha > 2 * PI) alpha = alpha - 2 * PI;
 		glutPostRedisplay();
 		break;
 	default:
