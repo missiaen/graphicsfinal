@@ -113,6 +113,54 @@ void readOFF()//method to read .off format data. Borrowed partially form Dr. Zey
 	std::cin >> filename;
 	fin = fopen(filename, "rb");
 
+		/* OFF format */
+	while (fgets(line, 256, fin) != NULL) {
+		if (line[0] == 'O' && line[1] == 'F' && line[2] == 'F')
+			break;
+	}
+	fscanf(fin, "%d %d %d\n", &numVertices, &numPolygons, &numEdges);
+
+	printf("Number of vertices  = %d\n", numVertices);
+	printf("Number of polygons = %d\n", numPolygons);
+	printf("Number of edges = %d\n", numEdges);
+	printf("loading vedrtices and polygons... ");
+
+	vdata = new GLfloat*[numVertices];
+	for (int i = 0; i<numVertices; i++)
+		vdata[i] = new GLfloat[3];
+
+	pdata = new GLuint*[numPolygons]; //array for storing polygon data (vertex indices)
+	psize = new GLuint[numPolygons];  //array for storing polygon size
+
+	resize = 0.0001;
+	for (n = 0; n < numVertices; n++) { //read vertex data
+		fscanf(fin, "%f %f %f\n", &x, &y, &z);
+		vdata[n][0] = x;
+		resize = max(resize, fabs(x));
+		vdata[n][1] = y;
+		resize = max(resize, fabs(y));
+		vdata[n][2] = z;
+		resize = max(resize, fabs(z));
+	}
+
+	for (n = 0; n < numVertices; n++) { //adjust vertex data
+		vdata[n][0] = vdata[n][0] / resize;
+		vdata[n][1] = vdata[n][1] / resize;
+		vdata[n][2] = vdata[n][2] / resize;
+	}
+
+	for (n = 0; n < numPolygons; n++) {
+		fscanf(fin, "%d", &a);
+		psize[n] = a;  //store n-th polygon size in psize[n]
+		pdata[n] = new GLuint[a];
+		for (j = 0; j < a; j++) { //read and save vertices of n-th polygon
+			fscanf(fin, "%d", &b);
+			pdata[n][j] = b;
+		}
+	}
+	fclose(fin);
+	printf("done.\n");
+
 void setInterpolationPoints()
 {
 	int res = 0;
